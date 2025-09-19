@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Weather Forecast</title>
+
+  <!-- icons & fonts -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- app css -->
+  <link rel="stylesheet" href="weather.css" />
+</head>
+<body class="bg-default">
+  <div class="weather-app">
+
+    <div class="search-container">
+      <input type="text" id="city-input" placeholder="Search city..." />
+      <button id="search-btn" class="fas fa-search" title="Search"></button>
+      <button id="location-btn" class="fas fa-location-arrow" title="Use my location"></button>
+
+      <!-- Unit toggle -->
+      <button id="unit-toggle" class="unit-toggle" title="Toggle units">Show °F</button>
+    </div>
+
+    <div class="weather-display">
+      <div class="current-weather">
+        <div class="weather-main">
+          <div class="location" id="location">—</div>
+          <div class="date" id="date">—</div>
+          <div class="temperature" id="temp">—</div>
+          <div class="conditions" id="conditions">—</div>
+        </div>
+
+        <div class="weather-icon">
+          <img src="#" alt="weather-Icon" id="weather-icon" />
+        </div>
+      </div>
+
+      <div class="weather-details">
+        <div class="detail">
+          <i class="fas fa-temperature-high"></i>
+          <span id="feels-like">Feels like: —</span>
+        </div>
+        <div class="detail">
+          <i class="fas fa-tint"></i>
+          <span id="humidity">Humidity: —</span>
+        </div>
+        <div class="detail">
+          <i class="fas fa-wind"></i>
+          <span id="wind">Wind: —</span>
+        </div>
+      </div>
+
+      <!-- Tip -->
+      <div id="weather-tip" class="weather-tip">Tip: —</div>
+
+      <!-- Sunrise & Sunset -->
+      <div id="astro" class="astro">
+        <div class="astro-item"><i class="fas fa-sun"></i> <span id="sunrise">Sunrise: —</span></div>
+        <div class="astro-item"><i class="fas fa-moon"></i> <span id="sunset">Sunset: —</span></div>
+      </div>
+
+      <!-- Forecast -->
+      <div class="forecast" id="forecast"></div>
+    </div>
+
+    <!-- Animation container (raindrops / snowflakes) -->
+    <div id="weather-anim" class="weather-anim" aria-hidden="true"></div>
+
+    <div class="loading" id="loading" style="display:none;">
+      <div class="loader"></div>
+      <p>Loading weather data....</p>
+    </div>
+  </div>
+
+  <!-- app js -->
+  <script src="weather.js"></script>
+</body>
+</html>

@@ -1,0 +1,203 @@
+:root {
+  --primary:#4361ee;
+  --secondary:#3f37c9;
+  --dark:#060606;
+  --light:#f8f9fa;
+  --danger:#ef233c;
+  --glass: rgba(255,255,255,0.8);
+  --glass-dark: rgba(12,12,18,0.55);
+}
+* { box-sizing: border-box; margin:0; padding:0; }
+
+body {
+  font-family: "Poppins", sans-serif;
+  background: url("https://images.pexels.com/photos/1118873/pexels-photo-1118873.jpeg?cs=srgb&dl=pexels-jplenio-1118873.jpg&fm=jpg");
+  min-height: 100vh;
+  padding: 20px;
+  color: var(--dark);
+  transition: background 0.6s ease, color 0.3s ease;
+}
+
+/* App container */
+.weather-app {
+  max-width: 100%;
+  margin: 0 auto;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(248, 101, 9, 0.941);
+  overflow: hidden;
+  position: relative;
+  transition: background 0.4s ease, color 0.3s ease;
+}
+
+/* Controls */
+.search-container {
+  display:flex;
+  padding: 18px;
+  gap: 10px;
+  align-items: center;
+  background: rgba(255,255,255,0.25);
+}
+#city-input {
+  flex:1;
+  padding: 12px 18px;
+  border-radius: 50px;
+  border: none;
+  outline: none;
+  font-size: 15px;
+  background: transparent;
+}
+.search-container button {
+  min-width: 45px;
+  height: 45px;
+  border: none;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  cursor: pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+.search-container button:hover { transform: translateY(-2px); background: var(--secondary); }
+
+/* Unit toggle */
+.unit-toggle {
+  border-radius: 10px;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.92);
+  color: var(--dark);
+  font-weight:600;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.06);
+}
+
+/* Weather area */
+.weather-display { padding: 20px; position: relative; z-index: 2; }
+.current-weather {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom: 18px;
+}
+.weather-main { flex:1; text-align:left; }
+.location { font-size:1.7rem; font-weight:700; margin-bottom:6px; }
+.date { color: rgba(0,0,0,0.5); margin-bottom:10px; }
+.temperature { font-size: 3.3rem; font-weight:700; margin-bottom:6px; }
+.conditions { color: rgba(0,0,0,0.65); }
+.weather-icon img { width:110px; height:110px; object-fit:contain; }
+
+/* Details & tip */
+.weather-details {
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap:12px;
+  position: relative;
+  z-index: 2;
+}
+.detail {
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+  border: 1px solid rgba(255,255,255,0.04);
+  backdrop-filter: blur(5px);
+  padding: 12px;
+  border-radius: 12px;
+  box-shadow: none;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.detail i { color: var(--primary); font-size:18px; }
+.weather-tip {
+  margin-top:12px;
+  background: rgba(255,255,255,0.85);
+  padding:12px 14px;
+  border-radius: 10px;
+  font-weight:600;
+  color: var(--dark);
+  display:inline-block;
+  position: relative;
+  z-index: 2;
+}
+
+/* Astro & forecast */
+.astro { display:flex; gap:18px; margin-top:12px; align-items:center; color: rgba(0,0,0,0.7); z-index: 2; }
+.forecast { display:grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 12px; margin-top: 14px; position: relative; z-index: 2; }
+.forecast-item {
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+  border: 1px solid rgba(255,255,255,0.04);
+  box-shadow: none;
+  transition: transform 220ms ease, box-shadow 220ms ease;
+  border-radius: 12px;
+  padding: 10px;
+  text-align: center;
+}
+.forecast-item:hover { transform: translateY(-6px); box-shadow: 0 8px 22px rgba(0,0,0,0.12); }
+.forecast-day { font-weight:700; margin-bottom:6px; }
+.forecast-icon img { width:48px; height:48px; }
+.forecast-temp { display:flex; justify-content:space-around; gap:8px; margin-top:6px; }
+.forecast-high { color: var(--danger); font-weight:700; }
+.forecast-low { color: var(--primary); }
+
+/* Loading overlay */
+.loading {
+  position:absolute; inset:0; display:none;
+  background: rgba(255,255,255,0.8);
+  justify-content:center; align-items:center; z-index:20;
+}
+.loader { width:48px; height:48px; border-radius:50%; border:4px solid #ddd; border-top-color:var(--primary); animation:spin 1s linear infinite; }
+
+/* Animation container (raindrops / snowflakes) */
+.weather-anim { position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:1; }
+
+/* Raindrop */
+.raindrop {
+  position: absolute;
+  top: -10%;
+  width: 2px;
+  height: 15px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.6));
+  transform: skewX(-20deg);
+  opacity: 0.9;
+  animation-name: fall;
+  animation-timing-function: linear;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  will-change: transform, opacity;
+}
+@keyframes fall { to { transform: translateY(110vh) skewX(-20deg); opacity: 0.6; } }
+
+/* Snowflake */
+.snowflake {
+  position: absolute;
+  top: -5%;
+  width: 8px;
+  height: 8px;
+  background: rgba(255,255,255,0.95);
+  border-radius: 50%;
+  filter: blur(0.2px);
+  opacity: 0.95;
+  animation-name: drift;
+  animation-timing-function: linear;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  will-change: transform, opacity;
+}
+@keyframes drift { to { transform: translateY(110vh) translateX(30px) rotate(180deg); opacity: 0.7; } }
+
+/* animated background gradient */
+@keyframes bgShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+.bg-clear, .bg-clouds, .bg-rain, .bg-thunder, .bg-snow, .bg-default { background-size: 200% 200%; animation: bgShift 25s linear infinite; }
+
+/* Forecast entrance animation (staggered) */
+@keyframes cardIn { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity:1; transform: translateY(0) scale(1);} }
+.forecast-item { animation: cardIn 420ms ease both; }
+.forecast-item:nth-child(1){ animation-delay: 0ms; }
+.forecast-item:nth-child(2){ animation-delay: 50ms; }
+.forecast-item:nth-child(3){ animation-delay: 100ms; }
+.forecast-item:nth-child(4){ animation-delay: 150ms; }
+.forecast-item:nth-child(5){ animation-delay: 200ms; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (max-width: 600px) {
+  .current-weather { flex-direction: column; text-align:center; gap: 12px; }
+  .temperature { font-size:2.5rem; }
+  .search-container { padding:12px; gap:8px; }
+}
