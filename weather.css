@@ -11,6 +11,7 @@
 
 body {
   font-family: "Poppins", sans-serif;
+  background-color: aqua;
   background: url("https://images.pexels.com/photos/1118873/pexels-photo-1118873.jpeg?cs=srgb&dl=pexels-jplenio-1118873.jpg&fm=jpg");
   min-height: 100vh;
   padding: 20px;
@@ -20,6 +21,18 @@ body {
 
 /* App container */
 .weather-app {
+    max-width: 100%;
+    max-height: 100vh;
+    margin:0 auto;
+    background: rgba(255,255,255,0.8);
+    backdrop-filter: blur(1px);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    overflow: hidden;
+    position: relative;
+}
+/*
+.weather-app {
   max-width: 100%;
   margin: 0 auto;
   border-radius: 20px;
@@ -27,9 +40,9 @@ body {
   overflow: hidden;
   position: relative;
   transition: background 0.4s ease, color 0.3s ease;
-  /* allow background overlay gradient */
-  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
-}
+   /*allow background overlay gradient 
+  background: linear-gradient(180deg, #05fa12ed, hsla(0, 90%, 51%, 0.941));
+}*/
 
 /* Background variants (applied via JS classes like bg-rain, bg-snow, etc.)
    These are subtle overlays so the page background image remains visible.
@@ -44,7 +57,7 @@ body {
   background: linear-gradient(180deg, rgba(220,220,230,0.06), rgba(200,200,210,0.03));
 }
 .weather-app.bg-rain {
-  background: linear-gradient(180deg, rgba(200,220,235,0.06), rgba(180,200,220,0.04));
+  background: linear-gradient(180deg, #f61cc70f, rgba(180,200,220,0.04));
 }
 .weather-app.bg-snow {
   background: linear-gradient(180deg, rgba(240,245,255,0.07), rgba(230,240,255,0.03));
@@ -188,6 +201,24 @@ body {
 }
 @keyframes fall { to { transform: translateY(110vh) skewX(-20deg); opacity: 0.6; } }
 
+.raindrop-splash {
+  position: absolute;
+  bottom: 0;
+  width: 4px;
+  height: 2px;
+  background: rgba(255,255,255,0.7);
+  border-radius: 50%;
+  opacity: 0.5;
+  animation: splash 0.5s linear infinite;
+}
+
+@keyframes splash {
+  0% { transform: scale(0); opacity: 0.5; }
+  50% { transform: scale(1.2); opacity: 0.3; }
+  100% { transform: scale(0); opacity: 0; }
+}
+
+
 /* Snowflake */
 .snowflake {
   position: absolute;
@@ -225,6 +256,69 @@ body {
 /* animated background gradient (keeps your bgShift anim) */
 @keyframes bgShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 .bg-clear, .bg-clouds, .bg-rain, .bg-thunder, .bg-snow, .bg-default { background-size: 200% 200%; animation: bgShift 25s linear infinite; }
+
+/* ----------------------
+   Cloud visuals + motion
+   ---------------------- */
+.weather-anim .cloud {
+  position: absolute;
+  top: 12%;
+  left: -30vw; /* start off-screen left */
+  width: 180px;
+  height: 64px;
+  border-radius: 50px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(245,245,245,0.95));
+  box-shadow:
+    30px 10px 30px rgba(0,0,0,0.08),
+    -10px 6px 18px rgba(0,0,0,0.04);
+  filter: blur(0.8px) saturate(1.02);
+  opacity: 0.9;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+/* Lobes (create soft cloud shape) */
+.weather-anim .cloud::before,
+.weather-anim .cloud::after {
+  content: "";
+  position: absolute;
+  background: inherit;
+  border-radius: 50%;
+  width: 70%;
+  height: 70%;
+  top: -30%;
+  left: 8%;
+  filter: inherit;
+}
+.weather-anim .cloud::after {
+  left: auto;
+  right: 6%;
+  top: -18%;
+  width: 60%;
+  height: 60%;
+}
+
+/* Movement keyframe (left -> right) */
+@keyframes cloudMove {
+  0%   { transform: translateX(-40vw) translateY(0); opacity: 0; }
+  10%  { opacity: 0.85; }
+  100% { transform: translateX(140vw) translateY(0); opacity: 0.85; }
+}
+
+/* subtle parallax layers when multiple clouds present */
+.weather-anim .cloud.layer-slow  { transform-origin: left center; animation-timing-function: linear; animation-iteration-count: infinite; }
+.weather-anim .cloud.layer-mid   { transform-origin: left center; animation-timing-function: linear; animation-iteration-count: infinite; }
+.weather-anim .cloud.layer-fast  { transform-origin: left center; animation-timing-function: linear; animation-iteration-count: infinite; }
+
+/* fade container on remove */
+.weather-anim.clouds-active { transition: opacity 550ms ease; }
+
+/* Respect reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .weather-anim .cloud { animation: none !important; transition: none !important; opacity: 0.9 !important; transform: none !important; }
+}
+
+
 
 /* Forecast entrance animation (staggered) */
 @keyframes cardIn { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity:1; transform: translateY(0) scale(1);} }

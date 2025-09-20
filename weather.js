@@ -1,3 +1,5 @@
+// ===================== weather.js (patched + clouds) =====================
+
 // ===================== API CONFIGURATION =====================
 const API_KEY = "f80a809ce080c002f3e2108a0586f6ab";
 const BASE_URL = "https://api.openweathermap.org/data/2.5";
@@ -5,22 +7,14 @@ const BASE_URL = "https://api.openweathermap.org/data/2.5";
 // ===================== Nominatim REVERSE GEOCODE =====================
 async function reverseGeocode(lat, lon) {
   try {
-    // Nominatim free reverse geocode API
     const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`;
-
     const res = await fetch(url, {
-      headers: {
-        "User-Agent": "WeatherAppExample/1.0 (your_email@example.com)" // required by Nominatim
-      }
+      headers: { "User-Agent": "WeatherAppExample/1.0 (your_email@example.com)" }
     });
-
     if (!res.ok) throw new Error(`Nominatim error: ${res.status}`);
     const data = await res.json();
-
-    // Pick suburb → city → state → country
     const address = data.address || {};
     return address.suburb || address.neighbourhood || address.city || address.town || address.state || address.country || "Unknown location";
-
   } catch (error) {
     console.error(error);
     return "Unknown location";
@@ -78,10 +72,16 @@ document.addEventListener("DOMContentLoaded", () => {
     if (lastCurrentData && lastForecastData) updateUI(lastCurrentData, lastForecastData);
   });
 
+  // Optional: small test selector if present (non-destructive)
+  const testSelect = document.getElementById('testWeather');
+  if (testSelect) {
+    testSelect.addEventListener('change', (e) => {
+      if (e.target.value) updateAnimation(e.target.value);
+    });
+  }
+
   updateDate();
   applyUnitToggleUI();
-
-  // initial attempt to get current location weather
   getLocationWeather();
 });
 
@@ -179,10 +179,7 @@ async function getLocationWeather() {
 // ===================== UPDATE UI =====================
 function updateUI(current, forecast) {
   if (!current || !forecast) return;
-  if (locationEl) {
-    const display = current._displayName || `${current.name}, ${current.sys.country}`;
-    locationEl.textContent = display;
-  }
+  if (locationEl) locationEl.textContent = current._displayName || `${current.name}, ${current.sys.country}`;
   updateDate();
   if (tempEl) tempEl.textContent = formatTemp(current.main.temp);
   if (conditionsEl) conditionsEl.textContent = capitalize(current.weather[0].description || "");
@@ -203,6 +200,7 @@ function updateUI(current, forecast) {
   }
   generateTip(current);
   updateForecast(forecast);
+  updateAnimation(current.weather[0].main);
 }
 
 // ===================== FORECAST =====================
@@ -252,9 +250,213 @@ function generateTip(current) {
   if (tempC <= 10) tips.push("It's chilly — wear a jacket 🧥.");
   if (windKmh >= 45) tips.push("Very windy 🌬 — secure loose items outdoors.");
   if (humidity >= 85 && !main.includes('rain')) tips.push("High humidity — it may feel muggy.");
+  if (main.includes('clear')) tips.push("Difficulty seeing sun-glow? Wear sunglasses 😎 and apply sunscreen.");
   if (tips.length === 0) tips.push("Have a great day! ☀");
   tipEl.textContent = `Tip: ${tips.join(" ")}`;
 }
 
 // ===================== UTILITY =====================
 function capitalize(s) { if (!s) return ""; return s.charAt(0).toUpperCase() + s.slice(1); }
+
+// ===================== ANIMATION HELPERS =====================
+
+// Creates/returns a same-origin <style id="weather-anim-styles"> sheet and clears previous content.
+// This avoids any cross-origin cssRules access issues.
+function getAnimStyleSheet() {
+  let styleEl = document.getElementById('weather-anim-styles');
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = 'weather-anim-styles';
+    document.head.appendChild(styleEl);
+  }
+  // Reset dynamic content (keeps the sheet tidy and prevents unbounded rule growth).
+  styleEl.textContent = '';
+  return styleEl.sheet;
+}
+
+// ===================== ADVANCED updateAnimation (safe for CORS) =====================
+
+function updateAnimation(main) {
+  if (!animContainer) return;
+  animContainer.innerHTML = "";               // clear old particles
+  const sheet = getAnimStyleSheet();          // safe, same-origin sheet for dynamic rules
+  main = (main || '').toLowerCase();
+
+  // Ensure basic splash CSS exists in our dynamic sheet (so you don't need to edit your CSS file)
+  const splashCSS = `
+    .raindrop-splash {
+      position: absolute;
+      bottom: 0;
+      width: 6px;
+      height: 3px;
+      background: rgba(255,255,255,0.65);
+      border-radius: 50%;
+      opacity: 0;
+      pointer-events: none;
+      transform-origin: center;
+      will-change: transform, opacity;
+      animation-name: splash_dynamic;
+      animation-timing-function: linear;
+      animation-iteration-count: infinite;
+    }
+    @keyframes splash_dynamic {
+      0% { transform: scale(0); opacity: 0.6; }
+      40% { transform: scale(1.1); opacity: 0.35; }
+      100% { transform: scale(0); opacity: 0; }
+    }
+  `;
+  try { sheet.insertRule(splashCSS, sheet.cssRules.length); } catch (e) { /* ignore */ }
+
+  if (main.includes('rain') || main.includes('drizzle') || main.includes('thunder')) {
+    const dropCount = 50;
+    for (let i = 0; i < dropCount; i++) {
+      const drop = document.createElement('div');
+      drop.className = 'raindrop';
+      const size = 1 + Math.random() * 2;
+      drop.style.width = `${size}px`;
+      drop.style.height = `${10 + Math.random() * 20}px`;
+      drop.style.left = `${Math.random() * 100}vw`;
+      drop.style.top = `${-5 - Math.random() * 10}%`;
+      drop.style.opacity = (0.4 + Math.random() * 0.6).toString();
+      const duration = (0.8 + Math.random() * 1.2).toFixed(2) + 's';
+      drop.style.animationDuration = duration;
+      drop.style.animationDelay = (Math.random() * 2).toFixed(2) + 's';
+      drop.style.transform = `skewX(-20deg) translateY(-10%)`;
+      // Add a CSS animation name if your .raindrop CSS uses a keyframe name like 'fall' already.
+      // If not, the existing CSS in your stylesheet should animate .raindrop via @keyframes fall.
+      animContainer.appendChild(drop);
+
+      // Create a splash element that uses the same timing as the drop (so it appears when the drop "lands").
+      const splash = document.createElement('div');
+      splash.className = 'raindrop-splash';
+      // Position splash roughly under the same horizontal position
+      splash.style.left = drop.style.left;
+      // sync timing: we want the splash to play near the end of drop's animation.
+      // We'll set the same duration but offset the delay so the splash starts when drop is "landing".
+      splash.style.animationDuration = duration;
+      // Slightly offset the splash delay so it triggers near the end of drop's fall
+      const splashDelaySeconds = Math.max(0, parseFloat(drop.style.animationDelay) + parseFloat(duration) * 0.9 - 0.08);
+      splash.style.animationDelay = splashDelaySeconds.toFixed(2) + 's';
+      animContainer.appendChild(splash);
+    }
+
+    // smooth fade-in
+    animContainer.style.opacity = '0';
+    animContainer.style.transition = 'opacity 350ms ease';
+    requestAnimationFrame(() => { animContainer.style.opacity = '1'; });
+
+  } else if (main.includes('snow')) {
+    const flakeCount = 40;
+    const baseName = `drift_${Date.now()}`;
+    for (let i = 0; i < flakeCount; i++) {
+      const flake = document.createElement('div');
+      flake.className = 'snowflake';
+      const size = 4 + Math.random() * 6;
+      flake.style.width = `${size}px`;
+      flake.style.height = `${size}px`;
+      flake.style.left = `${Math.random() * 100}vw`;
+      flake.style.top = `${-5 - Math.random() * 10}%`;
+      const opacityVal = 0.5 + Math.random() * 0.5;
+      flake.style.opacity = opacityVal.toString();
+      const duration = (4 + Math.random() * 3).toFixed(2) + 's';
+      flake.style.animationDuration = duration;
+      flake.style.animationDelay = (Math.random() * 2).toFixed(2) + 's';
+
+      // Unique keyframe per flake to allow per-flake sway and rotation
+      const rotate = Math.random() * 360;
+      const sway = 20 + Math.random() * 30;
+      const kName = `${baseName}_${i}`;
+      const kf = `
+        @keyframes ${kName} {
+          0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: ${opacityVal}; }
+          50% { transform: translateY(50vh) translateX(${sway}px) rotate(${180 + rotate}deg); opacity: ${Math.max(opacityVal * 0.9, 0.2)}; }
+          100% { transform: translateY(110vh) translateX(0) rotate(${360 + rotate}deg); opacity: ${Math.max(opacityVal * 0.7, 0.1)}; }
+        }
+      `;
+      try { sheet.insertRule(kf, sheet.cssRules.length); } catch (e) { /* ignore */ }
+      flake.style.animationName = kName;
+
+      animContainer.appendChild(flake);
+    }
+
+    // fade-in snow
+    animContainer.style.opacity = '0';
+    animContainer.style.transition = 'opacity 600ms ease';
+    requestAnimationFrame(() => { animContainer.style.opacity = '1'; });
+
+  }
+  // === CLOUDS: create drifting cloud layers (parallax) ===
+  else if (main.includes('cloud') || main.includes('clouds')) {
+    animContainer.classList.add('clouds-active');
+    const cloudCount = 5;
+    const baseTop = 8;
+    for (let i = 0; i < cloudCount; i++) {
+      const c = document.createElement('div');
+      c.className = 'cloud';
+
+      const scale = 0.8 + Math.random() * 1.2;
+      c.style.width = `${120 * scale + Math.random() * 120}px`;
+      c.style.height = `${48 * scale + Math.random() * 24}px`;
+      c.style.top = `${baseTop + Math.random() * 50}%`;
+
+      const layerChooser = Math.random();
+      let duration;
+      if (layerChooser < 0.35) {
+        c.classList.add('layer-slow');
+        duration = 40 + Math.random() * 30;
+      } else if (layerChooser < 0.75) {
+        c.classList.add('layer-mid');
+        duration = 28 + Math.random() * 22;
+      } else {
+        c.classList.add('layer-fast');
+        duration = 14 + Math.random() * 12;
+      }
+
+      const delay = Math.random() * -duration;
+      c.style.animationName = 'cloudMove';
+      c.style.animationDuration = `${duration}s`;
+      c.style.animationDelay = `${delay}s`;
+      c.style.animationTimingFunction = 'linear';
+      c.style.animationIterationCount = 'infinite';
+      c.style.opacity = (0.6 + Math.random() * 0.35).toString();
+
+      animContainer.appendChild(c);
+    }
+
+    // fade-in container
+    animContainer.style.opacity = '0';
+    requestAnimationFrame(() => {
+      animContainer.style.transition = 'opacity 550ms ease';
+      animContainer.style.opacity = '1';
+    });
+  }
+
+  else if (main.includes('clear') || main.includes('sun')) {
+    // create sun glow
+    const sun = document.createElement('div');
+    sun.className = 'sun-glow';
+    sun.style.animation = 'sun-pulse 2s ease-in-out infinite alternate';
+    animContainer.appendChild(sun);
+
+    // add sun-pulse keyframes safely into our sheet
+    const sunKf = `
+      @keyframes sun-pulse {
+        0% { transform: scale(0.95); opacity: 0.85; }
+        100% { transform: scale(1.05); opacity: 0.95; }
+      }
+    `;
+    try { sheet.insertRule(sunKf, sheet.cssRules.length); } catch (e) { /* ignore */ }
+
+    // gentle fade-in
+    animContainer.style.opacity = '0';
+    animContainer.style.transition = 'opacity 450ms ease';
+    requestAnimationFrame(() => { animContainer.style.opacity = '1'; });
+
+  } else {
+    // clear animations
+    animContainer.style.opacity = '';
+    animContainer.style.transition = '';
+  }
+}
+
+// ===================== End of patched weather.js with clouds =====================
