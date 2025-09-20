@@ -308,7 +308,7 @@ function updateAnimation(main) {
   try { sheet.insertRule(splashCSS, sheet.cssRules.length); } catch (e) { /* ignore */ }
 
   if (main.includes('rain') || main.includes('drizzle') || main.includes('thunder')) {
-    const dropCount = 50;
+    const dropCount = 100;
     for (let i = 0; i < dropCount; i++) {
       const drop = document.createElement('div');
       drop.className = 'raindrop';
@@ -346,7 +346,7 @@ function updateAnimation(main) {
     requestAnimationFrame(() => { animContainer.style.opacity = '1'; });
 
   } else if (main.includes('snow')) {
-    const flakeCount = 40;
+    const flakeCount = 60;
     const baseName = `drift_${Date.now()}`;
     for (let i = 0; i < flakeCount; i++) {
       const flake = document.createElement('div');
@@ -388,7 +388,7 @@ function updateAnimation(main) {
   // === CLOUDS: create drifting cloud layers (parallax) ===
   else if (main.includes('cloud') || main.includes('clouds')) {
     animContainer.classList.add('clouds-active');
-    const cloudCount = 5;
+    const cloudCount = 7;
     const baseTop = 8;
     for (let i = 0; i < cloudCount; i++) {
       const c = document.createElement('div');
@@ -435,21 +435,21 @@ function updateAnimation(main) {
     // create sun glow
     const sun = document.createElement('div');
     sun.className = 'sun-glow';
-    sun.style.animation = 'sun-pulse 2s ease-in-out infinite alternate';
+    sun.style.animation = 'sun-pulse 50s ease-in-out infinite alternate';
     animContainer.appendChild(sun);
 
     // add sun-pulse keyframes safely into our sheet
     const sunKf = `
       @keyframes sun-pulse {
         0% { transform: scale(0.95); opacity: 0.85; }
-        100% { transform: scale(1.05); opacity: 0.95; }
+        100% { transform: scale(1.05); opacity: 3.95; }
       }
     `;
     try { sheet.insertRule(sunKf, sheet.cssRules.length); } catch (e) { /* ignore */ }
 
     // gentle fade-in
     animContainer.style.opacity = '0';
-    animContainer.style.transition = 'opacity 450ms ease';
+    animContainer.style.transition = 'opacity 650ms ease';
     requestAnimationFrame(() => { animContainer.style.opacity = '1'; });
 
   } else {
