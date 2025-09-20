@@ -15,7 +15,7 @@ body {
   min-height: 100vh;
   padding: 20px;
   color: var(--dark);
-  transition: background 0.6s ease, color 0.3s ease;
+ /* transition: background 0.6s ease, color 0.3s ease;*/
 }
 
 /* App container */
