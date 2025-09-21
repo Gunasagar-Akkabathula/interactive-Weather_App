@@ -1,4 +1,4 @@
-// ===================== weather.js (patched + clouds) =====================
+// ===================== weather.js (full + clouds & drift) =====================
 
 // ===================== API CONFIGURATION =====================
 const API_KEY = "f80a809ce080c002f3e2108a0586f6ab";
@@ -8,9 +8,7 @@ const BASE_URL = "https://api.openweathermap.org/data/2.5";
 async function reverseGeocode(lat, lon) {
   try {
     const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`;
-    const res = await fetch(url, {
-      headers: { "User-Agent": "WeatherAppExample/1.0 (your_email@example.com)" }
-    });
+    const res = await fetch(url, { headers: { "User-Agent": "WeatherAppExample/1.0 (your_email@example.com)" } });
     if (!res.ok) throw new Error(`Nominatim error: ${res.status}`);
     const data = await res.json();
     const address = data.address || {};
@@ -51,6 +49,14 @@ document.addEventListener("DOMContentLoaded", () => {
   animContainer = document.getElementById("weather-anim");
   tipEl = document.getElementById("weather-tip");
 
+  // ----- Safety: ensure unit toggle exists and has expected layout behavior -----
+  if (unitToggleBtn) {
+    // make sure it doesn't shrink in a flex row and text doesn't wrap
+    unitToggleBtn.style.flex = "0 0 auto";
+    unitToggleBtn.style.whiteSpace = "nowrap";
+    unitToggleBtn.setAttribute("aria-pressed", isCelsius ? "false" : "true");
+  }
+
   if (searchBtn) searchBtn.addEventListener("click", () => {
     const c = (cityInput && cityInput.value) ? cityInput.value.trim() : "";
     if (c) getWeatherByCity(c);
@@ -70,15 +76,19 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.setItem("weather_isCelsius", isCelsius);
     applyUnitToggleUI();
     if (lastCurrentData && lastForecastData) updateUI(lastCurrentData, lastForecastData);
+    // update aria-pressed for accessibility
+    unitToggleBtn.setAttribute("aria-pressed", (!isCelsius).toString());
   });
 
-  // Optional: small test selector if present (non-destructive)
   const testSelect = document.getElementById('testWeather');
   if (testSelect) {
     testSelect.addEventListener('change', (e) => {
       if (e.target.value) updateAnimation(e.target.value);
     });
   }
+
+  // ensure forecast layout adapts at start and on resize
+  window.addEventListener('resize', adjustForecastLayout, { passive: true });
 
   updateDate();
   applyUnitToggleUI();
@@ -162,13 +172,9 @@ async function getLocationWeather() {
   }
   navigator.geolocation.getCurrentPosition(async (pos) => {
     const { latitude, longitude } = pos.coords;
-    try {
-      await getWeatherByCoords(latitude, longitude);
-    } catch (err) {
-      alert(`Error fetching location/weather: ${err.message || err}`);
-    } finally {
-      hideLoading();
-    }
+    try { await getWeatherByCoords(latitude, longitude); } 
+    catch (err) { alert(`Error fetching location/weather: ${err.message || err}`); }
+    finally { hideLoading(); }
   }, async (error) => {
     alert(`Geolocation error: ${error.message || error.code}`);
     await getWeatherByCity('Hyderabad');
@@ -190,14 +196,8 @@ function updateUI(current, forecast) {
   if (feelsLikeEl) feelsLikeEl.textContent = formatFeels(current.main.feels_like);
   if (humidityEl) humidityEl.textContent = `Humidity: ${current.main.humidity}%`;
   if (windEl) windEl.textContent = formatWind(current.wind.speed);
-  if (sunriseEl) {
-    const sr = new Date(current.sys.sunrise * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    sunriseEl.textContent = `Sunrise: ${sr}`;
-  }
-  if (sunsetEl) {
-    const ss = new Date(current.sys.sunset * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    sunsetEl.textContent = `Sunset: ${ss}`;
-  }
+  if (sunriseEl) sunriseEl.textContent = `Sunrise: ${new Date(current.sys.sunrise*1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+  if (sunsetEl) sunsetEl.textContent = `Sunset: ${new Date(current.sys.sunset*1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
   generateTip(current);
   updateForecast(forecast);
   updateAnimation(current.weather[0].main);
@@ -212,7 +212,7 @@ function updateForecast(forecast) {
     if (!daily[dateKey]) daily[dateKey] = [];
     daily[dateKey].push(item);
   });
-  const days = Object.keys(daily).slice(1, 6);
+  const days = Object.keys(daily).slice(1, 6); // next 5 days
   forecastEl.innerHTML = '';
   days.forEach(day => {
     const data = daily[day];
@@ -233,6 +233,47 @@ function updateForecast(forecast) {
     `;
     forecastEl.appendChild(div);
   });
+
+  // adjust layout according to viewport (mobile: horizontal scroll; wider: keep grid)
+  adjustForecastLayout();
+}
+
+// ===================== ADJUST FORECAST LAYOUT (responsive) =====================
+function adjustForecastLayout() {
+  if (!forecastEl) return;
+  const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+
+  // threshold where grid would be too tight and we prefer horizontal scroll (you can tweak)
+  const mobileThreshold = 420;
+
+  if (vw <= mobileThreshold) {
+    // switch to horizontal scroll layout
+    forecastEl.style.display = 'flex';
+    forecastEl.style.overflowX = 'auto';
+    forecastEl.style.WebkitOverflowScrolling = 'touch';
+    forecastEl.style.gap = '10px';
+    forecastEl.style.paddingBottom = '6px';
+    // ensure each card has a fixed width so they don't compress
+    const items = forecastEl.querySelectorAll('.forecast-item');
+    items.forEach(it => {
+      it.style.flex = '0 0 120px';
+      it.style.minWidth = '120px';
+      it.style.maxWidth = '120px';
+    });
+  } else {
+    // revert to grid-based layout so your CSS grid rules can apply
+    forecastEl.style.display = '';
+    forecastEl.style.overflowX = '';
+    forecastEl.style.gap = '';
+    forecastEl.style.paddingBottom = '';
+    const items = forecastEl.querySelectorAll('.forecast-item');
+    items.forEach(it => {
+      it.style.flex = '';
+      it.style.minWidth = '';
+      it.style.maxWidth = '';
+      it.style.width = '';
+    });
+  }
 }
 
 // ===================== TIPS =====================
@@ -259,9 +300,6 @@ function generateTip(current) {
 function capitalize(s) { if (!s) return ""; return s.charAt(0).toUpperCase() + s.slice(1); }
 
 // ===================== ANIMATION HELPERS =====================
-
-// Creates/returns a same-origin <style id="weather-anim-styles"> sheet and clears previous content.
-// This avoids any cross-origin cssRules access issues.
 function getAnimStyleSheet() {
   let styleEl = document.getElementById('weather-anim-styles');
   if (!styleEl) {
@@ -269,194 +307,88 @@ function getAnimStyleSheet() {
     styleEl.id = 'weather-anim-styles';
     document.head.appendChild(styleEl);
   }
-  // Reset dynamic content (keeps the sheet tidy and prevents unbounded rule growth).
   styleEl.textContent = '';
   return styleEl.sheet;
 }
 
-// ===================== ADVANCED updateAnimation (safe for CORS) =====================
-
+// ===================== WEATHER ANIMATION =====================
 function updateAnimation(main) {
   if (!animContainer) return;
-  animContainer.innerHTML = "";               // clear old particles
-  const sheet = getAnimStyleSheet();          // safe, same-origin sheet for dynamic rules
+  animContainer.innerHTML = "";
+  const sheet = getAnimStyleSheet();
   main = (main || '').toLowerCase();
 
-  // Ensure basic splash CSS exists in our dynamic sheet (so you don't need to edit your CSS file)
-  const splashCSS = `
-    .raindrop-splash {
-      position: absolute;
-      bottom: 0;
-      width: 6px;
-      height: 3px;
-      background: rgba(255,255,255,0.65);
-      border-radius: 50%;
-      opacity: 0;
-      pointer-events: none;
-      transform-origin: center;
-      will-change: transform, opacity;
-      animation-name: splash_dynamic;
-      animation-timing-function: linear;
-      animation-iteration-count: infinite;
-    }
-    @keyframes splash_dynamic {
-      0% { transform: scale(0); opacity: 0.6; }
-      40% { transform: scale(1.1); opacity: 0.35; }
-      100% { transform: scale(0); opacity: 0; }
-    }
-  `;
-  try { sheet.insertRule(splashCSS, sheet.cssRules.length); } catch (e) { /* ignore */ }
-
+  // --- Rain/Drizzle ---
   if (main.includes('rain') || main.includes('drizzle') || main.includes('thunder')) {
     const dropCount = 100;
-    for (let i = 0; i < dropCount; i++) {
-      const drop = document.createElement('div');
-      drop.className = 'raindrop';
-      const size = 1 + Math.random() * 2;
-      drop.style.width = `${size}px`;
-      drop.style.height = `${10 + Math.random() * 20}px`;
-      drop.style.left = `${Math.random() * 100}vw`;
-      drop.style.top = `${-5 - Math.random() * 10}%`;
-      drop.style.opacity = (0.4 + Math.random() * 0.6).toString();
-      const duration = (0.8 + Math.random() * 1.2).toFixed(2) + 's';
-      drop.style.animationDuration = duration;
-      drop.style.animationDelay = (Math.random() * 2).toFixed(2) + 's';
-      drop.style.transform = `skewX(-20deg) translateY(-10%)`;
-      // Add a CSS animation name if your .raindrop CSS uses a keyframe name like 'fall' already.
-      // If not, the existing CSS in your stylesheet should animate .raindrop via @keyframes fall.
+    for (let i=0;i<dropCount;i++){
+      const drop=document.createElement('div');
+      drop.className='raindrop';
+      drop.style.width=`${1+Math.random()*2}px`;
+      drop.style.height=`${10+Math.random()*20}px`;
+      drop.style.left=`${Math.random()*100}vw`;
+      drop.style.top=`${-5-Math.random()*10}%`;
+      drop.style.opacity=(0.4+Math.random()*0.6).toString();
+      const duration=(0.8+Math.random()*1.2)+'s';
+      drop.style.animationDuration=duration;
+      drop.style.animationDelay=(Math.random()*2).toFixed(2)+'s';
+      drop.style.transform='skewX(-20deg) translateY(-10%)';
       animContainer.appendChild(drop);
-
-      // Create a splash element that uses the same timing as the drop (so it appears when the drop "lands").
-      const splash = document.createElement('div');
-      splash.className = 'raindrop-splash';
-      // Position splash roughly under the same horizontal position
-      splash.style.left = drop.style.left;
-      // sync timing: we want the splash to play near the end of drop's animation.
-      // We'll set the same duration but offset the delay so the splash starts when drop is "landing".
-      splash.style.animationDuration = duration;
-      // Slightly offset the splash delay so it triggers near the end of drop's fall
-      const splashDelaySeconds = Math.max(0, parseFloat(drop.style.animationDelay) + parseFloat(duration) * 0.9 - 0.08);
-      splash.style.animationDelay = splashDelaySeconds.toFixed(2) + 's';
-      animContainer.appendChild(splash);
     }
+  }
 
-    // smooth fade-in
-    animContainer.style.opacity = '0';
-    animContainer.style.transition = 'opacity 350ms ease';
-    requestAnimationFrame(() => { animContainer.style.opacity = '1'; });
-
-  } else if (main.includes('snow')) {
-    const flakeCount = 60;
-    const baseName = `drift_${Date.now()}`;
-    for (let i = 0; i < flakeCount; i++) {
-      const flake = document.createElement('div');
-      flake.className = 'snowflake';
-      const size = 4 + Math.random() * 6;
-      flake.style.width = `${size}px`;
-      flake.style.height = `${size}px`;
-      flake.style.left = `${Math.random() * 100}vw`;
-      flake.style.top = `${-5 - Math.random() * 10}%`;
-      const opacityVal = 0.5 + Math.random() * 0.5;
-      flake.style.opacity = opacityVal.toString();
-      const duration = (4 + Math.random() * 3).toFixed(2) + 's';
-      flake.style.animationDuration = duration;
-      flake.style.animationDelay = (Math.random() * 2).toFixed(2) + 's';
-
-      // Unique keyframe per flake to allow per-flake sway and rotation
-      const rotate = Math.random() * 360;
-      const sway = 20 + Math.random() * 30;
-      const kName = `${baseName}_${i}`;
-      const kf = `
-        @keyframes ${kName} {
-          0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: ${opacityVal}; }
-          50% { transform: translateY(50vh) translateX(${sway}px) rotate(${180 + rotate}deg); opacity: ${Math.max(opacityVal * 0.9, 0.2)}; }
-          100% { transform: translateY(110vh) translateX(0) rotate(${360 + rotate}deg); opacity: ${Math.max(opacityVal * 0.7, 0.1)}; }
-        }
-      `;
-      try { sheet.insertRule(kf, sheet.cssRules.length); } catch (e) { /* ignore */ }
-      flake.style.animationName = kName;
-
+  // --- Snow ---
+  else if (main.includes('snow')) {
+    const flakeCount=60, baseName=`drift_${Date.now()}`;
+    for (let i=0;i<flakeCount;i++){
+      const flake=document.createElement('div');
+      flake.className='snowflake';
+      const size=4+Math.random()*6;
+      flake.style.width=`${size}px`;
+      flake.style.height=`${size}px`;
+      flake.style.left=`${Math.random()*100}vw`;
+      flake.style.top=`${-5-Math.random()*10}%`;
+      const opacityVal=0.5+Math.random()*0.5;
+      flake.style.opacity=opacityVal.toString();
+      const duration=(4+Math.random()*3).toFixed(2)+'s';
+      flake.style.animationDuration=duration;
+      flake.style.animationDelay=(Math.random()*2).toFixed(2)+'s';
+      const rotate=Math.random()*360;
+      const sway=20+Math.random()*30;
+      const kName=`${baseName}_${i}`;
+      const kf=`@keyframes ${kName} {0%{transform:translateY(0) translateX(0) rotate(0deg);opacity:${opacityVal};}50%{transform:translateY(50vh) translateX(${sway}px) rotate(${180+rotate}deg);opacity:${Math.max(opacityVal*0.9,0.2)};}100%{transform:translateY(110vh) translateX(0) rotate(${360+rotate}deg);opacity:${Math.max(opacityVal*0.7,0.1)};}}`;
+      try{sheet.insertRule(kf,sheet.cssRules.length);}catch(e){}
+      flake.style.animationName=kName;
       animContainer.appendChild(flake);
     }
-
-    // fade-in snow
-    animContainer.style.opacity = '0';
-    animContainer.style.transition = 'opacity 600ms ease';
-    requestAnimationFrame(() => { animContainer.style.opacity = '1'; });
-
   }
-  // === CLOUDS: create drifting cloud layers (parallax) ===
+
+  // --- Clouds ---
   else if (main.includes('cloud') || main.includes('clouds')) {
-    animContainer.classList.add('clouds-active');
-    const cloudCount = 7;
-    const baseTop = 8;
-    for (let i = 0; i < cloudCount; i++) {
-      const c = document.createElement('div');
-      c.className = 'cloud';
-
-      const scale = 0.8 + Math.random() * 1.2;
-      c.style.width = `${120 * scale + Math.random() * 120}px`;
-      c.style.height = `${48 * scale + Math.random() * 24}px`;
-      c.style.top = `${baseTop + Math.random() * 50}%`;
-
-      const layerChooser = Math.random();
-      let duration;
-      if (layerChooser < 0.35) {
-        c.classList.add('layer-slow');
-        duration = 40 + Math.random() * 30;
-      } else if (layerChooser < 0.75) {
-        c.classList.add('layer-mid');
-        duration = 28 + Math.random() * 22;
-      } else {
-        c.classList.add('layer-fast');
-        duration = 14 + Math.random() * 12;
-      }
-
-      const delay = Math.random() * -duration;
-      c.style.animationName = 'cloudMove';
-      c.style.animationDuration = `${duration}s`;
-      c.style.animationDelay = `${delay}s`;
-      c.style.animationTimingFunction = 'linear';
-      c.style.animationIterationCount = 'infinite';
-      c.style.opacity = (0.6 + Math.random() * 0.35).toString();
-
+    const cloudCount=7, baseTop=8;
+    for (let i=0;i<cloudCount;i++){
+      const c=document.createElement('div');
+      c.className='cloud';
+      const scale=0.8+Math.random()*1.2;
+      c.style.width=`${120*scale+Math.random()*120}px`;
+      c.style.height=`${48*scale+Math.random()*24}px`;
+      c.style.top=`${baseTop+Math.random()*50}%`;
+      const layerChooser=Math.random(), duration=(layerChooser<0.35?40+Math.random()*30:layerChooser<0.75?28+Math.random()*22:14+Math.random()*12);
+      c.style.animationName='cloudMove';
+      c.style.animationDuration=`${duration}s`;
+      c.style.animationDelay=`${Math.random()*-duration}s`;
+      c.style.animationTimingFunction='linear';
+      c.style.animationIterationCount='infinite';
+      c.style.opacity=(0.6+Math.random()*0.35).toString();
       animContainer.appendChild(c);
     }
-
-    // fade-in container
-    animContainer.style.opacity = '0';
-    requestAnimationFrame(() => {
-      animContainer.style.transition = 'opacity 550ms ease';
-      animContainer.style.opacity = '1';
-    });
   }
 
+  // --- Clear/Sun ---
   else if (main.includes('clear') || main.includes('sun')) {
-    // create sun glow
-    const sun = document.createElement('div');
-    sun.className = 'sun-glow';
-    sun.style.animation = 'sun-pulse 50s ease-in-out infinite alternate';
+    const sun=document.createElement('div');
+    sun.className='sun-glow';
+    sun.style.animation='sun-pulse 50s ease-in-out infinite alternate';
     animContainer.appendChild(sun);
-
-    // add sun-pulse keyframes safely into our sheet
-    const sunKf = `
-      @keyframes sun-pulse {
-        0% { transform: scale(0.95); opacity: 0.85; }
-        100% { transform: scale(1.05); opacity: 3.95; }
-      }
-    `;
-    try { sheet.insertRule(sunKf, sheet.cssRules.length); } catch (e) { /* ignore */ }
-
-    // gentle fade-in
-    animContainer.style.opacity = '0';
-    animContainer.style.transition = 'opacity 650ms ease';
-    requestAnimationFrame(() => { animContainer.style.opacity = '1'; });
-
-  } else {
-    // clear animations
-    animContainer.style.opacity = '';
-    animContainer.style.transition = '';
   }
 }
-
-// ===================== End of patched weather.js with clouds =====================
