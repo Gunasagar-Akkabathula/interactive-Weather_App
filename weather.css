@@ -209,7 +209,6 @@ body {
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-
 /* -------------------------
    RESPONSIVENESS
 ------------------------- */
@@ -231,9 +230,28 @@ body {
   .current-weather { flex-direction: column; text-align:center; gap: 12px; }
   .temperature { font-size:2.5rem; }
   .location { font-size: 1.3rem; }
-  .search-container { padding: 12px; gap: 8px; flex-wrap: wrap; }
-  #city-input { font-size: 14px; padding: 10px 14px; }
-  .search-container button { min-width:38px; height:38px; }
+  
+  /* Here is the key updated part for navbar */
+  .search-container { 
+    padding: 12px; 
+    gap: 6px; 
+    flex-wrap: nowrap;  /* Prevent wrapping */
+  }
+  #city-input { 
+    font-size: 13px; 
+    padding: 8px 8px; 
+    min-width: 0; /* Allow input to shrink */
+  }
+  .search-container button { 
+    min-width: 32px; 
+    height: 32px; 
+    font-size: 15px; 
+  }
+  .unit-toggle {
+    font-size: 13px;
+    padding: 5px 6px;
+  }
+
   .weather-details { grid-template-columns: repeat(auto-fit, minmax(120px,1fr)); gap:8px; }
   .forecast { 
     display: flex !important;
@@ -245,13 +263,6 @@ body {
   .forecast-item {
     min-width: 110px;
     flex: 0 0 auto;
-  }
-  .unit-toggle {
-    font-size: 14px;
-    padding: 6px 10px;
-    min-width: unset;
-    border-radius: 8px;
-    margin-left: 0;
   }
   .weather-anim .cloud {
     width: 70px !important;
