@@ -78,7 +78,6 @@ body {
   background: rgba(255,255,255,0.92);
   color: var(--dark);
   font-weight:600;
-  box-shadow: 0 6px 14px rgba(0,0,0,0.06);
 }
 
 /* Weather area */
@@ -210,9 +209,11 @@ body {
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
+
 /* -------------------------
    RESPONSIVENESS
 ------------------------- */
+
 @media (max-width: 1200px) {
   .temperature { font-size: 2.8rem; }
   .location { font-size: 1.5rem; }
@@ -230,9 +231,48 @@ body {
   .current-weather { flex-direction: column; text-align:center; gap: 12px; }
   .temperature { font-size:2.5rem; }
   .location { font-size: 1.3rem; }
-  .search-container { padding: 12px; gap: 8px; }
+  .search-container { padding: 12px; gap: 8px; flex-wrap: wrap; }
   #city-input { font-size: 14px; padding: 10px 14px; }
   .search-container button { min-width:38px; height:38px; }
   .weather-details { grid-template-columns: repeat(auto-fit, minmax(120px,1fr)); gap:8px; }
-  .forecast { grid-template-columns: repeat(auto-fit, minmax(80px,1fr)); }
+  .forecast { 
+    display: flex !important;
+    overflow-x: auto !important;
+    gap: 12px;
+    padding-bottom: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .forecast-item {
+    min-width: 110px;
+    flex: 0 0 auto;
+  }
+  .unit-toggle {
+    font-size: 14px;
+    padding: 6px 10px;
+    min-width: unset;
+    border-radius: 8px;
+    margin-left: 0;
+  }
+  .weather-anim .cloud {
+    width: 70px !important;
+    height: 24px !important;
+  }
+  .weather-anim .cloud::before {
+    width: 55%;
+    height: 52%;
+  }
+  .weather-anim .cloud::after {
+    width: 48%;
+    height: 43%;
+  }
+  .weather-app {
+    padding-bottom: 16px;
+    min-height: 100vh;
+    max-height: unset;
+    height: auto;
+    overflow: visible;
+  }
+  body {
+    padding: 2px;
+  }
 }

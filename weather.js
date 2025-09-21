@@ -1,8 +1,10 @@
 // ===================== weather.js (full + clouds & drift) =====================
 
+
 // ===================== API CONFIGURATION =====================
 const API_KEY = "f80a809ce080c002f3e2108a0586f6ab";
 const BASE_URL = "https://api.openweathermap.org/data/2.5";
+
 
 // ===================== Nominatim REVERSE GEOCODE =====================
 async function reverseGeocode(lat, lon) {
@@ -19,14 +21,17 @@ async function reverseGeocode(lat, lon) {
   }
 }
 
+
 // ===================== DOM ELEMENTS =====================
 let cityInput, searchBtn, locationBtn, locationEl, dateEl, tempEl, conditionsEl, iconEl;
 let feelsLikeEl, humidityEl, windEl, forecastEl, loadingEl, sunriseEl, sunsetEl;
 let unitToggleBtn, animContainer, tipEl;
 
+
 let lastCurrentData = null;
 let lastForecastData = null;
 let isCelsius = (localStorage.getItem("weather_isCelsius") || "true") === "true";
+
 
 // ===================== INITIAL SETUP =====================
 document.addEventListener("DOMContentLoaded", () => {
@@ -49,6 +54,7 @@ document.addEventListener("DOMContentLoaded", () => {
   animContainer = document.getElementById("weather-anim");
   tipEl = document.getElementById("weather-tip");
 
+
   // ----- Safety: ensure unit toggle exists and has expected layout behavior -----
   if (unitToggleBtn) {
     // make sure it doesn't shrink in a flex row and text doesn't wrap
@@ -57,10 +63,12 @@ document.addEventListener("DOMContentLoaded", () => {
     unitToggleBtn.setAttribute("aria-pressed", isCelsius ? "false" : "true");
   }
 
+
   if (searchBtn) searchBtn.addEventListener("click", () => {
     const c = (cityInput && cityInput.value) ? cityInput.value.trim() : "";
     if (c) getWeatherByCity(c);
   });
+
 
   if (cityInput) cityInput.addEventListener("keypress", (e) => {
     if (e.key === "Enter") {
@@ -69,7 +77,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+
   if (locationBtn) locationBtn.addEventListener("click", getLocationWeather);
+
 
   if (unitToggleBtn) unitToggleBtn.addEventListener("click", () => {
     isCelsius = !isCelsius;
@@ -80,6 +90,7 @@ document.addEventListener("DOMContentLoaded", () => {
     unitToggleBtn.setAttribute("aria-pressed", (!isCelsius).toString());
   });
 
+
   const testSelect = document.getElementById('testWeather');
   if (testSelect) {
     testSelect.addEventListener('change', (e) => {
@@ -87,17 +98,21 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+
   // ensure forecast layout adapts at start and on resize
   window.addEventListener('resize', adjustForecastLayout, { passive: true });
+
 
   updateDate();
   applyUnitToggleUI();
   getLocationWeather();
 });
 
+
 // ===================== LOADING UI =====================
 function showLoading() { if (loadingEl) loadingEl.style.display = "flex"; }
 function hideLoading() { if (loadingEl) loadingEl.style.display = "none"; }
+
 
 // ===================== DATE & UNITS =====================
 function updateDate() {
@@ -106,15 +121,18 @@ function updateDate() {
   dateEl.textContent = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 }
 
+
 function applyUnitToggleUI() {
   if (!unitToggleBtn) return;
   unitToggleBtn.textContent = isCelsius ? "Show °F" : "Show °C";
 }
 
+
 function toF(c) { return (c * 9) / 5 + 32; }
 function formatTemp(c) { return isCelsius ? `${Math.round(c)}°C` : `${Math.round(toF(c))}°F`; }
 function formatFeels(c) { return isCelsius ? `Feels like: ${Math.round(c)}°C` : `Feels like: ${Math.round(toF(c))}°F`; }
 function formatWind(mps) { return isCelsius ? `Wind: ${Math.round(mps * 3.6)} km/h` : `Wind: ${Math.round(mps * 2.23694)} mph`; }
+
 
 // ===================== SAFE FETCH =====================
 async function safeFetch(url) {
@@ -126,6 +144,7 @@ async function safeFetch(url) {
   }
   return data;
 }
+
 
 // ===================== WEATHER BY CITY =====================
 async function getWeatherByCity(city) {
@@ -142,6 +161,7 @@ async function getWeatherByCity(city) {
     hideLoading();
   }
 }
+
 
 // ===================== WEATHER BY COORDS =====================
 async function getWeatherByCoords(lat, lon) {
@@ -160,6 +180,7 @@ async function getWeatherByCoords(lat, lon) {
     hideLoading();
   }
 }
+
 
 // ===================== GET LOCATION WEATHER =====================
 async function getLocationWeather() {
@@ -182,6 +203,7 @@ async function getLocationWeather() {
   }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
 }
 
+
 // ===================== UPDATE UI =====================
 function updateUI(current, forecast) {
   if (!current || !forecast) return;
@@ -202,6 +224,7 @@ function updateUI(current, forecast) {
   updateForecast(forecast);
   updateAnimation(current.weather[0].main);
 }
+
 
 // ===================== FORECAST =====================
 function updateForecast(forecast) {
@@ -237,6 +260,7 @@ function updateForecast(forecast) {
   // adjust layout according to viewport (mobile: horizontal scroll; wider: keep grid)
   adjustForecastLayout();
 }
+
 
 // ===================== ADJUST FORECAST LAYOUT (responsive) =====================
 function adjustForecastLayout() {
@@ -276,6 +300,7 @@ function adjustForecastLayout() {
   }
 }
 
+
 // ===================== TIPS =====================
 function generateTip(current) {
   if (!tipEl || !current) return;
@@ -296,8 +321,10 @@ function generateTip(current) {
   tipEl.textContent = `Tip: ${tips.join(" ")}`;
 }
 
+
 // ===================== UTILITY =====================
 function capitalize(s) { if (!s) return ""; return s.charAt(0).toUpperCase() + s.slice(1); }
+
 
 // ===================== ANIMATION HELPERS =====================
 function getAnimStyleSheet() {
@@ -311,12 +338,14 @@ function getAnimStyleSheet() {
   return styleEl.sheet;
 }
 
+
 // ===================== WEATHER ANIMATION =====================
 function updateAnimation(main) {
   if (!animContainer) return;
   animContainer.innerHTML = "";
   const sheet = getAnimStyleSheet();
   main = (main || '').toLowerCase();
+
 
   // --- Rain/Drizzle ---
   if (main.includes('rain') || main.includes('drizzle') || main.includes('thunder')) {
@@ -336,6 +365,7 @@ function updateAnimation(main) {
       animContainer.appendChild(drop);
     }
   }
+
 
   // --- Snow ---
   else if (main.includes('snow')) {
@@ -363,26 +393,31 @@ function updateAnimation(main) {
     }
   }
 
-  // --- Clouds ---
+
+  // --- Clouds --- (mobile optimized)
   else if (main.includes('cloud') || main.includes('clouds')) {
-    const cloudCount=7, baseTop=8;
+    const isMobile = window.innerWidth <= 600;
+    const cloudCount = isMobile ? 3 : 7; // Fewer clouds on mobile
+    const baseTop = 8;
     for (let i=0;i<cloudCount;i++){
       const c=document.createElement('div');
       c.className='cloud';
-      const scale=0.8+Math.random()*1.2;
-      c.style.width=`${120*scale+Math.random()*120}px`;
-      c.style.height=`${48*scale+Math.random()*24}px`;
-      c.style.top=`${baseTop+Math.random()*50}%`;
-      const layerChooser=Math.random(), duration=(layerChooser<0.35?40+Math.random()*30:layerChooser<0.75?28+Math.random()*22:14+Math.random()*12);
+      // Smaller clouds on mobile
+      const scale = isMobile ? (0.7+Math.random()*0.5) : (0.8+Math.random()*1.2);
+      c.style.width = `${isMobile ? 70 : 120 * scale + Math.random() * 120}px`;
+      c.style.height = `${isMobile ? 24 : 48 * scale + Math.random() * 24}px`;
+      c.style.top = `${baseTop + Math.random() * 50}%`;
+      const duration = isMobile ? 18 + Math.random() * 10 : 24 + Math.random() * 24;
       c.style.animationName='cloudMove';
       c.style.animationDuration=`${duration}s`;
       c.style.animationDelay=`${Math.random()*-duration}s`;
       c.style.animationTimingFunction='linear';
       c.style.animationIterationCount='infinite';
-      c.style.opacity=(0.6+Math.random()*0.35).toString();
+      c.style.opacity=(0.65+Math.random()*0.2).toString();
       animContainer.appendChild(c);
     }
   }
+
 
   // --- Clear/Sun ---
   else if (main.includes('clear') || main.includes('sun')) {
