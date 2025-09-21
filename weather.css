@@ -61,7 +61,7 @@ body {
   padding: 18px;
   gap: 10px;
   align-items: center;
-  background: rgba(255,255,255,0.25);
+  background: #ffffff7c;
 }
 #city-input {
   flex:1;
@@ -122,7 +122,7 @@ body {
   margin-bottom:6px;
 }
 .date {
-  color: rgba(0,0,0,0.5);
+  color: rgba(0, 0, 0, 0.906);
   margin-bottom:10px;
 }
 .temperature {
@@ -131,7 +131,7 @@ body {
   margin-bottom:6px;
 }
 .conditions {
-  color: rgba(0,0,0,0.65);
+  color: rgba(0, 0, 0, 0.836);
 }
 .weather-icon img {
   width:110px;
@@ -148,7 +148,7 @@ body {
   z-index: 2;
 }
 .detail {
-  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.662), rgba(255,255,255,0.03));
   border: 1px solid rgba(255,255,255,0.04);
   backdrop-filter: blur(5px);
   padding: 12px;
@@ -223,7 +223,7 @@ body {
   font-weight:700;
 }
 .forecast-low {
-  color: var(--primary);
+  color: var(--dark);
 }
 
 /* Loading overlay */
@@ -271,7 +271,7 @@ body {
 @keyframes fall {
   to {
     transform: translateY(110vh) skewX(-20deg);
-    opacity: 0.6;
+    opacity: 0.8;
   }
 }
 
